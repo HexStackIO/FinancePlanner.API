@@ -129,8 +129,8 @@ public static class ServiceCollectionExtensions
                 Description = "API for managing personal finances with recurring transactions",
                 Contact = new OpenApiContact
                 {
-                    Name = "Shawn Matthews",
-                    Url = new Uri("https://github.com/SCMatthews19")
+                    Name = "HexStackIO",
+                    Url = new Uri("https://github.com/HexStackIO")
                 }
             });
 
