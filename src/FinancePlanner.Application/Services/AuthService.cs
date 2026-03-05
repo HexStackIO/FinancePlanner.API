@@ -1,81 +1,32 @@
 using FinancePlanner.Application.DTOs;
 using FinancePlanner.Application.Interfaces;
-using FinancePlanner.Application.Models;
 using FinancePlanner.Core.Entities;
 using FinancePlanner.Core.Interfaces;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace FinancePlanner.Application.Services;
 
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
-    private readonly JwtSettings _jwtSettings;
 
-    public AuthService(IUserRepository userRepository, IOptions<JwtSettings> jwtSettings)
+    public AuthService(IUserRepository userRepository)
     {
         _userRepository = userRepository;
-        _jwtSettings = jwtSettings.Value;
     }
 
-    public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
-    {
-        if (await _userRepository.ExistsAsync(request.Email))
-        {
-            return null;
-        }
+    /// <summary>
+    /// No longer used — login is handled by Entra External ID via MSAL.
+    /// Kept to satisfy interface until legacy endpoints are fully removed.
+    /// </summary>
+    public Task<AuthResponse?> LoginAsync(LoginRequest request)
+        => Task.FromResult<AuthResponse?>(null);
 
-        var user = new User
-        {
-            UserId = Guid.NewGuid(),
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-
-        await _userRepository.CreateAsync(user);
-
-        var token = GenerateJwtToken(user);
-
-        return new AuthResponse
-        {
-            Token = token,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
-            User = MapToUserDto(user)
-        };
-    }
-
-    public async Task<AuthResponse?> LoginAsync(LoginRequest request)
-    {
-        var user = await _userRepository.GetByEmailAsync(request.Email);
-        if (user == null)
-        {
-            return null;
-        }
-
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-        {
-            return null;
-        }
-
-        user.LastLoginAt = DateTimeOffset.UtcNow;
-        await _userRepository.UpdateAsync(user);
-
-        var token = GenerateJwtToken(user);
-
-        return new AuthResponse
-        {
-            Token = token,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
-            User = MapToUserDto(user)
-        };
-    }
+    /// <summary>
+    /// No longer used — registration is handled by Entra External ID via MSAL.
+    /// Kept to satisfy interface until legacy endpoints are fully removed.
+    /// </summary>
+    public Task<AuthResponse?> RegisterAsync(RegisterRequest request)
+        => Task.FromResult<AuthResponse?>(null);
 
     public async Task<UserDto?> GetCurrentUserAsync(Guid userId)
     {
@@ -83,25 +34,29 @@ public class AuthService : IAuthService
         return user == null ? null : MapToUserDto(user);
     }
 
-    public async Task<UserDto?> SyncEntraUserAsync(string objectId, string? email, string? firstName, string? lastName)
+    public async Task<UserDto?> SyncEntraUserAsync(
+        string objectId, string? email, string? firstName, string? lastName)
     {
+        // Check if user already exists by Entra object ID
         var user = await _userRepository.GetByEntraIdAsync(objectId);
 
         if (user == null && !string.IsNullOrEmpty(email))
         {
+            // Check if they registered with email/password before — link the accounts
             user = await _userRepository.GetByEmailAsync(email);
         }
 
         if (user == null)
         {
+            // First time this Entra user has logged in — create their record
             user = new User
             {
-                UserId = Guid.NewGuid(),
+                UserId = Guid.Parse(objectId),
                 EntraObjectId = objectId,
                 Email = email ?? string.Empty,
                 FirstName = firstName ?? string.Empty,
                 LastName = lastName ?? string.Empty,
-                PasswordHash = string.Empty, 
+                PasswordHash = string.Empty,
                 CreatedAt = DateTimeOffset.UtcNow,
                 LastLoginAt = DateTimeOffset.UtcNow
             };
@@ -109,6 +64,7 @@ public class AuthService : IAuthService
         }
         else
         {
+            // Existing user — update their Entra ID if not already set and refresh last login
             if (string.IsNullOrEmpty(user.EntraObjectId))
                 user.EntraObjectId = objectId;
 
@@ -119,39 +75,12 @@ public class AuthService : IAuthService
         return MapToUserDto(user);
     }
 
-    private string GenerateJwtToken(User user)
+    private static UserDto MapToUserDto(User user) => new()
     {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
-        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString())
-        };
-
-        var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
-            signingCredentials: credentials
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private static UserDto MapToUserDto(User user)
-    {
-        return new UserDto
-        {
-            UserId = user.UserId,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            CreatedAt = user.CreatedAt
-        };
-    }
+        UserId = user.UserId,
+        Email = user.Email,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        CreatedAt = user.CreatedAt
+    };
 }

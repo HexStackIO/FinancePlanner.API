@@ -365,3 +365,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /src/FinancePlanner.API/Properties/serviceDependencies.*.json
 /src/FinancePlanner.API/Properties/ServiceDependencies/financeplannerapi - Web Deploy/apis1.arm.json
+/src/FinancePlanner.API/appsettings.Development.json

@@ -1,6 +1,7 @@
 using FinancePlanner.API.Extensions;
 using FinancePlanner.API.Middleware;
 using FinancePlanner.Infrastructure.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Serilog;
@@ -33,7 +34,28 @@ try
     builder.Services.AddDatabase(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.Services.AddCorsPolicy(builder.Environment, builder.Configuration);
-    builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+    try
+    {
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApi(options =>
+            {
+                options.Audience = builder.Configuration["AzureAd:ClientId"];
+            },
+            identityOptions =>
+            {
+                Console.WriteLine($"DEBUG Instance: '{builder.Configuration["AzureAd:Instance"]}'");
+                Console.WriteLine($"DEBUG TenantId: '{builder.Configuration["AzureAd:TenantId"]}'");
+                Console.WriteLine($"DEBUG ClientId: '{builder.Configuration["AzureAd:ClientId"]}'");
+                identityOptions.Authority = $"{builder.Configuration["AzureAd:Instance"]}{builder.Configuration["AzureAd:TenantId"]}/v2.0";
+                identityOptions.ClientId = builder.Configuration["AzureAd:ClientId"];
+                identityOptions.TenantId = builder.Configuration["AzureAd:TenantId"];
+            });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"AUTH SETUP ERROR: {ex}");
+        throw;
+    }
 
     builder.Services.AddControllers()
         .AddJsonOptions(options =>

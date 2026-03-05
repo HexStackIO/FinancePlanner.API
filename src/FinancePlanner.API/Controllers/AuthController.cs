@@ -16,18 +16,23 @@ public class AuthController : ApiControllerBase
         _authService = authService;
         _logger = logger;
     }
+
+    /// <summary>
+    /// Called after MSAL sign-in to sync the Entra user into your database.
+    /// Creates the user record if it doesn't exist yet.
+    /// </summary>
     [HttpPost("sync")]
     [Authorize]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> SyncUser()
     {
-        var objectId = GetCurrentUserId();
+        var objectId = GetCurrentUserObjectId(); // Entra object ID string
         var email = User.FindFirst("preferred_username")?.Value
                  ?? User.FindFirst("email")?.Value;
         var firstName = User.FindFirst("given_name")?.Value;
         var lastName = User.FindFirst("family_name")?.Value;
 
-        var user = await _authService.SyncEntraUserAsync(objectId.ToString(), email, firstName, lastName);
+        var user = await _authService.SyncEntraUserAsync(objectId, email, firstName, lastName);
         return Ok(user);
     }
 
@@ -36,7 +41,7 @@ public class AuthController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public IActionResult Logout()
     {
-        _logger.LogInformation("User logged out: {UserId}", GetCurrentUserId());
+        _logger.LogInformation("User logged out: {UserId}", GetCurrentUserObjectId());
         return NoContent();
     }
 

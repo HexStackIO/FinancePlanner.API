@@ -16,4 +16,8 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+
 </Project>

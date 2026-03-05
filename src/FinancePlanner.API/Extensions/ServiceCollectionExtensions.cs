@@ -1,17 +1,13 @@
 using FinancePlanner.Application.Interfaces;
-using FinancePlanner.Application.Models;
 using FinancePlanner.Application.Services;
 using FinancePlanner.Core.Interfaces;
 using FinancePlanner.Infrastructure.Caching;
 using FinancePlanner.Infrastructure.Data;
 using FinancePlanner.Infrastructure.Repositories;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IO.Compression;
-using System.Text;
 
 namespace FinancePlanner.API.Extensions;
 
@@ -43,38 +39,6 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddJwtAuthentication(
-        this IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
-
-        var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
-        var key = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
-
-        services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-        {
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = jwtSettings.Issuer,
-                ValidAudience = jwtSettings.Audience,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ClockSkew = TimeSpan.Zero
-            };
-            options.SaveToken = true;
-        });
-
-        return services;
-    }
-
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         // Repositories
@@ -82,13 +46,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
 
+        // Services
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<ICashFlowService, CashFlowService>();
 
         services.AddScoped<TransactionRecurrenceService>();
-
         services.AddScoped<ICacheService, CacheService>();
 
         return services;
