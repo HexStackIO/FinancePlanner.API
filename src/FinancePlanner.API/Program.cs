@@ -31,7 +31,6 @@ try
     // Services
     builder.Services.AddResponseOptimization();
     builder.Services.AddDatabase(builder.Configuration);
-    builder.Services.AddJwtAuthentication(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.Services.AddCorsPolicy(builder.Environment, builder.Configuration);
     builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
