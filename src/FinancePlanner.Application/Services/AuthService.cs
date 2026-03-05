@@ -83,6 +83,42 @@ public class AuthService : IAuthService
         return user == null ? null : MapToUserDto(user);
     }
 
+    public async Task<UserDto?> SyncEntraUserAsync(string objectId, string? email, string? firstName, string? lastName)
+    {
+        var user = await _userRepository.GetByEntraIdAsync(objectId);
+
+        if (user == null && !string.IsNullOrEmpty(email))
+        {
+            user = await _userRepository.GetByEmailAsync(email);
+        }
+
+        if (user == null)
+        {
+            user = new User
+            {
+                UserId = Guid.NewGuid(),
+                EntraObjectId = objectId,
+                Email = email ?? string.Empty,
+                FirstName = firstName ?? string.Empty,
+                LastName = lastName ?? string.Empty,
+                PasswordHash = string.Empty, 
+                CreatedAt = DateTimeOffset.UtcNow,
+                LastLoginAt = DateTimeOffset.UtcNow
+            };
+            await _userRepository.CreateAsync(user);
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(user.EntraObjectId))
+                user.EntraObjectId = objectId;
+
+            user.LastLoginAt = DateTimeOffset.UtcNow;
+            await _userRepository.UpdateAsync(user);
+        }
+
+        return MapToUserDto(user);
+    }
+
     private string GenerateJwtToken(User user)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));

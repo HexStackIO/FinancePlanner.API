@@ -30,6 +30,12 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
     }
 
+    public async Task<User?> GetByEntraIdAsync(string entraObjectId)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.EntraObjectId == entraObjectId);
+    }
+
     public async Task<User> CreateAsync(User user)
     {
         user.CreatedAt = DateTimeOffset.UtcNow;

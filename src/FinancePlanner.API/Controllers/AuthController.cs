@@ -16,47 +16,24 @@ public class AuthController : ApiControllerBase
         _authService = authService;
         _logger = logger;
     }
-
-    [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    [HttpPost("sync")]
+    [Authorize]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SyncUser()
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var objectId = GetCurrentUserId();
+        var email = User.FindFirst("preferred_username")?.Value
+                 ?? User.FindFirst("email")?.Value;
+        var firstName = User.FindFirst("given_name")?.Value;
+        var lastName = User.FindFirst("family_name")?.Value;
 
-        var response = await _authService.RegisterAsync(request);
-        if (response == null)
-            return BadRequest(new { message = "User with this email already exists" });
-
-        _logger.LogInformation("User registered: {Email}", request.Email);
-        return CreatedAtAction(nameof(GetCurrentUser), new { }, response);
+        var user = await _authService.SyncEntraUserAsync(objectId.ToString(), email, firstName, lastName);
+        return Ok(user);
     }
 
-    [HttpPost("login")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var response = await _authService.LoginAsync(request);
-        if (response == null)
-            return Unauthorized(new { message = "Invalid email or password" });
-
-        _logger.LogInformation("User logged in: {Email}", request.Email);
-        return Ok(response);
-    }
-
-    /// <summary>
-    /// Signal the client to discard its token.
-    /// JWT is stateless so no server-side revocation occurs here.
-    /// </summary>
     [HttpPost("logout")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult Logout()
     {
         _logger.LogInformation("User logged out: {UserId}", GetCurrentUserId());
