@@ -36,4 +36,8 @@
         <!-- Performance and caching: Microsoft.Extensions.Caching.Memory is provided by the shared framework; remove explicit package reference -->
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="logs\" />
+	</ItemGroup>
+
 </Project>
