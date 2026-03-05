@@ -35,9 +35,32 @@ jobs:
           name: .net-app
           path: ${{env.DOTNET_ROOT}}/myapp
 
-  deploy:
+  migrate:
     runs-on: windows-latest
     needs: build
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Run migrations
+        run: |
+          dotnet ef database update ^
+            --project src\FinancePlanner.Infrastructure\FinancePlanner.Infrastructure.csproj ^
+            --startup-project src\FinancePlanner.API\FinancePlanner.API.csproj ^
+            --connection "${{ secrets.AZURE_POSTGRESQL_CONNECTION_STRING }}"
+
+  deploy:
+    runs-on: windows-latest
+    needs: migrate
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
