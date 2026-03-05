@@ -1,6 +1,5 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy ASP.Net Core app to Azure Web App - financeplannerapi
 on:
   push:
@@ -11,7 +10,7 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read
+      contents: read 
     steps:
       - uses: actions/checkout@v4
       - name: Set up .NET Core
@@ -52,7 +51,7 @@ jobs:
     runs-on: windows-latest
     needs: migrate
     permissions:
-      id-token: write 
+      id-token: write
       contents: read 
     steps:
       - name: Download artifact from build job
@@ -64,4 +63,11 @@ jobs:
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_E24F4D923A00472A9058E3F8EAD9BB5C }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_38251B6DE17E42EAA686F038B821FAF8 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_77162098FF674B71BB66833B6AC5D6AF
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_77162098FF674B71BB66833B6AC5D6AF }}
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'financeplannerapi'
+          slot-name: 'Production'
+          package: .
