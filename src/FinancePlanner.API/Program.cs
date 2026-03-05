@@ -2,6 +2,7 @@ using FinancePlanner.API.Extensions;
 using FinancePlanner.API.Middleware;
 using FinancePlanner.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 using Serilog;
 using Serilog.Events;
 
@@ -33,6 +34,7 @@ try
     builder.Services.AddJwtAuthentication(builder.Configuration);
     builder.Services.AddApplicationServices();
     builder.Services.AddCorsPolicy(builder.Environment, builder.Configuration);
+    builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
 
     builder.Services.AddControllers()
         .AddJsonOptions(options =>
