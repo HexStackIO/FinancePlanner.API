@@ -232,7 +232,7 @@ public class EnhancedCashFlowProjection
 
 public class DailyBalanceSnapshot
 {
-    public DateTimeOffset Date { get; set; }
+    public DateTime Date { get; set; }
 
     public decimal EndOfDayBalance { get; set; }
 

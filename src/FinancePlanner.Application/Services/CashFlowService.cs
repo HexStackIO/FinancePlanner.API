@@ -122,7 +122,7 @@ public class CashFlowService : ICashFlowService
             accountId, startDate, endDate, includeProjectedRecurring: true);
 
         return transactions
-            .GroupBy(t => t.StartDate.Date)
+            .GroupBy(t => t.StartDate.UtcDateTime.Date)
             .ToDictionary(
                 g => g.Key,
                 g => g.Select(t => new TransactionOccurrence
@@ -293,7 +293,7 @@ public class CashFlowService : ICashFlowService
                 Color = t.Color
             });
 
-            var dateKey = t.StartDate.Date;
+            var dateKey = t.StartDate.UtcDateTime.Date;
             if (!dailySnapshots.TryGetValue(dateKey, out var snapshot))
             {
                 snapshot = new DailyBalanceSnapshot
@@ -323,7 +323,7 @@ public class CashFlowService : ICashFlowService
         var allDailySnapshots = new List<DailyBalanceSnapshot>();
         var currentBalance = startingBalance;
 
-        for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
+        for (var date = startDate.UtcDateTime.Date; date <= endDate.UtcDateTime.Date; date = date.AddDays(1))
         {
             if (dailySnapshots.TryGetValue(date, out var snapshot))
             {
